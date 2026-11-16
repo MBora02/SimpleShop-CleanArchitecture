@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SimpleShop.Api/SimpleShop.Api.csproj" />
+  <Project Path="SimpleShop.Application/SimpleShop.Application.csproj" />
+  <Project Path="SimpleShop.Domain/SimpleShop.Domain.csproj" />
+  <Project Path="SimpleShop.Persistence/SimpleShop.Persistence.csproj" />
+</Solution>
