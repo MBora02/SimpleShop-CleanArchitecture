@@ -16,10 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\SimpleShop.Application\SimpleShop.Application.csproj" />
     <ProjectReference Include="..\SimpleShop.Persistence\SimpleShop.Persistence.csproj" />
   </ItemGroup>
