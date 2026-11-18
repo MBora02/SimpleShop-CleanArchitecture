@@ -1,4 +1,5 @@
-﻿using SimpleShop.Application.Common;
+﻿using FluentValidation;
+using SimpleShop.Application.Common;
 using SimpleShop.Application.DTOs.Product;
 using SimpleShop.Application.Interfaces.Repositories;
 using SimpleShop.Application.Interfaces.Services;
@@ -12,9 +13,16 @@ namespace SimpleShop.Application.Services
     public class ProductService : IProductService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public ProductService(IUnitOfWork unitOfWork)
+        private readonly IValidator<ProductCreateDto> _createValidator;
+        private readonly IValidator<ProductUpdateDto> _updateValidator;
+        public ProductService(
+            IUnitOfWork unitOfWork,
+            IValidator<ProductCreateDto> createValidator,
+            IValidator<ProductUpdateDto> updateValidator)
         {
             _unitOfWork = unitOfWork;
+            _createValidator = createValidator;
+            _updateValidator = updateValidator;
         }
         public async Task<Result<IReadOnlyList<ProductResponseDto>>> GetAllAsync()
         {
@@ -50,9 +58,11 @@ namespace SimpleShop.Application.Services
         }
         public async Task<Result<ProductResponseDto>> CreateAsync(ProductCreateDto dto)
         {
-            if (dto.Price <= 0)
+            var validationResult = await _createValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
             {
-                return Result<ProductResponseDto>.Failure("Ürün fiyatı 0 veya negatif olamaz.");
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return Result<ProductResponseDto>.Failure("Validasyon hatası oluştu.", errors);
             }
             var newProduct = new Product
             {
@@ -76,6 +86,12 @@ namespace SimpleShop.Application.Services
         }
         public async Task<Result> UpdateAsync(int id, ProductUpdateDto dto)
         {
+            var validationResult = await _updateValidator.ValidateAsync(dto);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return Result.Failure("Validasyon hatası oluştu.", errors);
+            }
             var product = await _unitOfWork.Products.GetByIdAsync(id);
             if (product == null)
             {
@@ -96,7 +112,6 @@ namespace SimpleShop.Application.Services
             {
                 return Result.Failure("Silinecek ürün bulunamadı.");
             }
-            // Soft delete metodumuzu çağırır
             _unitOfWork.Products.Delete(product);
             await _unitOfWork.SaveChangesAsync();
             return Result.Success("Ürün başarıyla silindi.");

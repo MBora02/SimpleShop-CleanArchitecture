@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 using SimpleShop.Application.Interfaces.Services;
 using SimpleShop.Application.Services;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace SimpleShop.Application
@@ -12,6 +14,7 @@ namespace SimpleShop.Application
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<IProductService, ProductService>();
+            services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             return services;
         }
     }

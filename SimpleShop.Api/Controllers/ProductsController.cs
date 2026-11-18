@@ -17,6 +17,7 @@ namespace SimpleShop.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
+            throw new Exception("Simüle edilmiş veritabanı çökme hatası!");
             var result = await _productService.GetAllAsync();
             return Ok(result);
         }

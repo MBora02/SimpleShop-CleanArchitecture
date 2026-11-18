@@ -1,6 +1,7 @@
 using Scalar.AspNetCore;
-using SimpleShop.Persistence;
+using SimpleShop.Api.Middlewares;
 using SimpleShop.Application;
+using SimpleShop.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,8 @@ builder.Services.AddApplicationServices();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
