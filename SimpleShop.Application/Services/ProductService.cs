@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.Extensions.Caching.Memory;
 using SimpleShop.Application.Common;
 using SimpleShop.Application.DTOs.Product;
 using SimpleShop.Application.Interfaces.Repositories;
@@ -15,17 +16,29 @@ namespace SimpleShop.Application.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidator<ProductCreateDto> _createValidator;
         private readonly IValidator<ProductUpdateDto> _updateValidator;
+        private readonly IMemoryCache _cache;
+
+        private const string ProductsCacheKey = "products_cache_list";
+
         public ProductService(
             IUnitOfWork unitOfWork,
             IValidator<ProductCreateDto> createValidator,
-            IValidator<ProductUpdateDto> updateValidator)
+            IValidator<ProductUpdateDto> updateValidator,
+            IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
             _createValidator = createValidator;
             _updateValidator = updateValidator;
+            _cache = cache;
         }
         public async Task<Result<IReadOnlyList<ProductResponseDto>>> GetAllAsync()
         {
+            // 1. Önce Cache'e bak: RAM'de bu liste var mı?
+            if (_cache.TryGetValue(ProductsCacheKey, out IReadOnlyList<ProductResponseDto>? cachedProducts))
+            {
+                return Result<IReadOnlyList<ProductResponseDto>>.Success(cachedProducts!, "Ürünler ÖNBELLEKTEN (RAM) getirildi.");
+            }
+            // 2. Cache'te yoksa Veritabanına (SQL) git:
             var products = await _unitOfWork.Products.GetAllAsync();
             var responseDtos = products.Select(p => new ProductResponseDto
             {
@@ -36,7 +49,12 @@ namespace SimpleShop.Application.Services
                 Stock = p.Stock,
                 CreatedDate = p.CreatedDate
             }).ToList();
-            return Result<IReadOnlyList<ProductResponseDto>>.Success(responseDtos, "Ürünler başarıyla getirildi.");
+            // 3. Veritabanından gelen veriyi 5 dakikalığına RAM'e kaydet:
+            var cacheOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromMinutes(5))
+                .SetSlidingExpiration(TimeSpan.FromMinutes(2));  
+            _cache.Set(ProductsCacheKey, responseDtos, cacheOptions);
+            return Result<IReadOnlyList<ProductResponseDto>>.Success(responseDtos, "Ürünler VERİTABANINDAN getirildi ve önbelleğe alındı.");
         }
         public async Task<Result<ProductResponseDto>> GetByIdAsync(int id)
         {
@@ -73,6 +91,7 @@ namespace SimpleShop.Application.Services
             };
             await _unitOfWork.Products.AddAsync(newProduct);
             await _unitOfWork.SaveChangesAsync();
+            _cache.Remove(ProductsCacheKey);
             var responseDto = new ProductResponseDto
             {
                 Id = newProduct.Id,
@@ -103,6 +122,7 @@ namespace SimpleShop.Application.Services
             product.Stock = dto.Stock;
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync();
+            _cache.Remove(ProductsCacheKey);
             return Result.Success("Ürün başarıyla güncellendi.");
         }
         public async Task<Result> DeleteAsync(int id)
@@ -114,6 +134,7 @@ namespace SimpleShop.Application.Services
             }
             _unitOfWork.Products.Delete(product);
             await _unitOfWork.SaveChangesAsync();
+            _cache.Remove(ProductsCacheKey);
             return Result.Success("Ürün başarıyla silindi.");
         }
     }
