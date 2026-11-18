@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SimpleShop.Application.DTOs.Product;
 using SimpleShop.Application.Interfaces.Services;
@@ -17,7 +18,6 @@ namespace SimpleShop.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            throw new Exception("Simüle edilmiş veritabanı çökme hatası!");
             var result = await _productService.GetAllAsync();
             return Ok(result);
         }
@@ -31,6 +31,7 @@ namespace SimpleShop.Api.Controllers
             }
             return Ok(result);
         }
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ProductCreateDto dto)
         {
@@ -41,6 +42,7 @@ namespace SimpleShop.Api.Controllers
             }
             return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result);
         }
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] ProductUpdateDto dto)
         {
@@ -51,6 +53,7 @@ namespace SimpleShop.Api.Controllers
             }
             return Ok(result);
         }
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
